@@ -1,0 +1,32 @@
+target Python {
+    coordination: decentralized,
+    clock-sync: on
+    # If PTP is on, clock-sync: off
+}
+
+reactor MainScheduler (
+    node_count=2,
+    capture_rate=1 sec
+) {
+    output capture_trigger;
+    input[node_count] data_in;
+    
+    # Timer fires periodically every 1 seconds
+    timer t_periodic(0, capture_rate); 
+    
+    # This is meant to be broadcasted to all nodes
+    reaction(t_periodic) -> capture_trigger {=
+        # Retrieve and transmit the current logical time tag
+        current_lt = lf.time.logical()
+        print(f"[MainScheduler][{current_lt}]: Sending trigger to all nodes")
+        capture_trigger.set(current_lt)
+    =}
+    
+    # Reaction to receive processed data and enforce the deadline
+    reaction(data_in) {=
+        # Iterate through ports
+        for i, port in enumerate(data_in):
+            # This is the normal handler, invoked ONLY if Lag <= budget
+            print(f"[MainScheduler][STATUS={port.value}]: Deadline met for CaptureNode {i}")
+    =}
+}

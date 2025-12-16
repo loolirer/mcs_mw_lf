@@ -1,0 +1,50 @@
+target Python {
+    coordination: decentralized,
+    clock-sync: on
+    # If PTP is on, clock-sync: off
+}
+
+preamble {=
+    import time
+    # Defining time constants
+    CRITICAL_PROCESSING_TIME = 0.8 # Critical load
+    TIMER_PERIOD = 1.0 # Capture rate
+    VIOLATION_PROCESSING_TIME = 1.2 # Force deadline miss
+=}
+
+reactor CaptureNode (
+    index=0,
+    mac_address=""
+) {
+    # Input carries the logical time tag of the trigger command
+    input capture_trigger; 
+
+    # Output carries the processing result (1 for success, -1 for forced failure)
+    output data_out; 
+    
+    # Number of cycles passed
+    state cycle_count = 0;
+
+    reaction (startup) {=
+        print(f"[CaptureNode {self.index}]: I'm {self.mac_address}!")
+    =}
+
+    reaction(capture_trigger) -> data_out {=
+        self.cycle_count += 1
+        
+        # Violate the deadline for just one node every cycle
+        if (self.cycle_count + self.index) % 4 == 0:
+            print(f"[CaptureNode {self.index}][{str(self.cycle_count).zfill(5)}]: VIOLATION DELAY ({VIOLATION_PROCESSING_TIME} s)")
+            
+            # Blocking call simulates heavy computational load exceeding the budget
+            time.sleep(VIOLATION_PROCESSING_TIME)
+            data_out.set(-1) 
+
+        else:
+            print(f"[CaptureNode {self.index}][{str(self.cycle_count).zfill(5)}]: NORMAL DELAY ({CRITICAL_PROCESSING_TIME} s)")
+            
+            # Simulating normal computational load under the budget
+            time.sleep(CRITICAL_PROCESSING_TIME)
+            data_out.set(1) 
+    =}
+}

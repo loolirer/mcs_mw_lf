@@ -1,96 +1,48 @@
-target Python
-
-preamble {=
-    import time
-    # Defining time constants
-    CRITICAL_PROCESSING_TIME = 0.8 # Critical load
-    TIMER_PERIOD = 1.0 # Capture rate
-    VIOLATION_PROCESSING_TIME = 1.2 # Force deadline miss
-=}
-
-reactor CaptureNode (
-    bank_index=0,
-    mac_address=""
-) {
-    # Input carries the logical time tag of the trigger command
-    input capture_trigger; 
-
-    # Output carries the processing result (1 for success, -1 for forced failure)
-    output data_out; 
-    
-    # Number of cycles passed
-    state cycle_count = 0;
-
-    reaction (startup) {=
-        print(f"[CaptureNode {self.bank_index}]: I'm {self.mac_address}!")
-    =}
-
-    reaction(capture_trigger) -> data_out {=
-        self.cycle_count += 1
-        
-        # Violate the deadline on every 5th cycle for testing
-        if (self.cycle_count + self.bank_index) % 4 == 0:
-            print(f"[CaptureNode {self.bank_index}][{str(self.cycle_count).zfill(5)}]: VIOLATION DELAY ({VIOLATION_PROCESSING_TIME} s)")
-            
-            # Blocking call simulates heavy computational load exceeding the budget
-            time.sleep(VIOLATION_PROCESSING_TIME)
-            data_out.set(-1) 
-
-        else:
-            print(f"[CaptureNode {self.bank_index}][{str(self.cycle_count).zfill(5)}]: NORMAL DELAY ({CRITICAL_PROCESSING_TIME} s)")
-            
-            # Simulating normal computational load under the budget
-            time.sleep(CRITICAL_PROCESSING_TIME)
-            data_out.set(1) 
-    =}
+target Python {
+    coordination: decentralized,
+    clock-sync: on
+    # If PTP is on, clock-sync: off
 }
 
-reactor MainScheduler (
-    node_count=2,
-    capture_rate=1 sec
-) {
-    output capture_trigger;
-    input[node_count] data_in;
-    
-    # Timer fires periodically every 1 seconds
-    timer t_periodic(0, capture_rate); 
-    
-    # This is meant to be broadcasted to all nodes
-    reaction(t_periodic) -> capture_trigger {=
-        # Retrieve and transmit the current logical time tag
-        current_lt = lf.time.logical()
-        print(f"[MainScheduler][{current_lt}]: Sending trigger to all nodes")
-        capture_trigger.set(current_lt)
-    =}
-    
-    # Reaction to receive processed data and enforce the deadline
-    reaction(data_in) {=
-        # Iterate through ports
-        for i, port in enumerate(data_in):
-            # This is the normal handler, invoked ONLY if Lag <= budget
-            print(f"[MainScheduler][STATUS={port.value}]: Deadline met for CaptureNode {i}")
-    =}
-}
+import CaptureNode from "CaptureNode.lf"
+import MainScheduler from "MainScheduler.lf"
 
-main reactor MotionTrackingArena (
-    node_count=4,
-    mac_addresses=[
-        "E4:5F:01:00:21:CC", 
-        "E4:5F:01:90:03:BA", 
-        "E4:5F:01:90:05:B8", 
-        "E4:5F:01:90:03:5C",
-    ]
-) { 
-    # Instantiating multiport scheduler   
-    server = new MainScheduler(
+federated reactor MotionTrackingArena (
+    node_count=4
+) {  
+    S = new MainScheduler(
         node_count=node_count,
         capture_rate=1 sec
     );
+
+    N0 = new CaptureNode(
+        index=0,
+        mac_address="E4:5F:01:00:21:CC"
+    ) at linguafranca@192.168.0.100;
+
+    N1 = new CaptureNode(
+        index=1,
+        mac_address="E4:5F:01:90:03:BA"
+    ) at linguafranca@192.168.0.101;
+
+    N2 = new CaptureNode(
+        index=2,
+        mac_address="E4:5F:01:90:05:B8"
+    ) at linguafranca@192.168.0.102;
+
+    N3 = new CaptureNode(
+        index=3,
+        mac_address="E4:5F:01:90:03:5C"
+    ) at linguafranca@192.168.0.103;
+
+    S.capture_trigger -> N0.capture_trigger;
+    S.capture_trigger -> N1.capture_trigger;
+    S.capture_trigger -> N2.capture_trigger;
+    S.capture_trigger -> N3.capture_trigger;
     
-    # Instantiating bank of node reactors
-    node_bank = new[node_count] CaptureNode(mac_address = {= self.mac_addresses[bank_index] =});
-    
-    # Establish the required closed-loop causality
-    (server.capture_trigger)+ -> node_bank.capture_trigger; # Broadcast capture trigger to all nodes
-    node_bank.data_out -> server.data_in;
+    N0.data_out,
+    N1.data_out,
+    N2.data_out,
+    N3.data_out 
+    -> S.data_in;
 }
