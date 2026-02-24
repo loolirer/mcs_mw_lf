@@ -2,11 +2,24 @@ import os
 import re
 import yaml
 import subprocess
+import shutil
+import argparse
 
 def get_arp_table():
-    arp_output = subprocess.check_output(["arp", "-a"], text=True)
+    """
+    Retrieves the ARP table from the system.
+    Returns a list of tuples: (ip_address, mac_address)
+    """
+    if not shutil.which("arp"):
+        print("Warning: 'arp' command not found. IPs cannot be resolved automatically.")
+        return []
 
-    # Regex for parsing IP and MAC addresses
+    try:
+        arp_output = subprocess.check_output(["arp", "-a"], text=True)
+    except subprocess.CalledProcessError:
+        print("Warning: Failed to execute 'arp -a'.")
+        return []
+
     ip_mac_pattern = re.compile(
         r"\(([\d.]+)\)\s+at\s+([0-9a-f:]{17}|[0-9a-f-]{17})", re.IGNORECASE
     )
@@ -15,23 +28,55 @@ def get_arp_table():
     return [(ip, mac.upper().replace("-", ":")) for ip, mac in arp_entries]
 
 def get_mac_mapping(mac_list):
-    mac_list = [mac.upper() for mac in mac_list]
+    """
+    Maps a list of target MAC addresses to their current IP addresses.
+    """
+    target_macs = [mac.upper() for mac in mac_list]
     arp_entries = get_arp_table()
 
-    mac_to_ip, ip_to_mac = {}, {}
-    for mac in mac_list:
+    mac_to_ip = {}
+    
+    for target_mac in target_macs:
         for ip, arp_mac in arp_entries:
-            if mac == arp_mac:
-                mac_to_ip[mac] = ip
-                ip_to_mac[ip] = mac
-                break  # Found the IP, no need to check further
+            if target_mac == arp_mac:
+                mac_to_ip[target_mac] = ip
+                break 
 
-    return mac_to_ip, ip_to_mac
+    return mac_to_ip
 
-def compose_lf(nodes, filename: str = "src/MotionTrackingArena.lf"):
-    node_count = len(nodes)
-    lf_code = f"""target Python {{
-    coordination: decentralized,
+def compose_lf_c(nodes, filename: str = "src/MotionTrackingArena.lf", local_rti: bool = False):
+    # 1. Separate the RTI host from the actual Capture Nodes (workers)
+    rti_node = next((node for node in nodes if node.get('RTI_host') is True), None)
+    
+    # The list of nodes that will actually be N0, N1, etc.
+    worker_nodes = [node for node in nodes if node.get('RTI_host') is not True]
+    
+    node_count = len(worker_nodes)
+
+    rti_at_clause = ""
+    scheduler_at_clause = ""
+
+    if local_rti:
+        print("CLI Flag detected: RTI will be local (omitting 'at' clause for Reactor and Scheduler).")
+        rti_at_clause = "" 
+        scheduler_at_clause = ""
+    else:
+        if rti_node:
+            rti_host = rti_node.get('hostname', 'localhost')
+            rti_user = rti_node.get('user', 'root')
+            print(f"RTI Host found: {rti_host} (User: {rti_user})")
+            
+            rti_at_clause = f" at {rti_user}@{rti_host}.local"
+            scheduler_at_clause = f" at {rti_user}@{rti_host}.local"
+        else:
+            print("No RTI Host found in config. Defaulting to local generation.")
+            rti_at_clause = ""
+            scheduler_at_clause = ""
+
+    
+    # Begin constructing LF code
+    lf_code = f"""target C {{
+    coordination: centralized,
     clock-sync: on
     # If PTP is on, clock-sync: off
 }}
@@ -40,31 +85,42 @@ import CaptureNode from "CaptureNode.lf"
 import MainScheduler from "MainScheduler.lf"
 
 federated reactor MotionTrackingArena (
-    node_count={node_count}
-) {{  
+    node_count: int = {node_count}
+){rti_at_clause} {{  
     S = new MainScheduler(
         node_count=node_count,
         capture_rate=1 sec
-    );
+    ){scheduler_at_clause};
 """
     
     node_instantiations = []
     
-    for i, node in enumerate(nodes):
+    # Iterate ONLY over the worker nodes (excluding RTI host)
+    for i, node in enumerate(worker_nodes):
         node_index = f"N{i}"
+        mac = node.get('mac_address', '')
+        ip = node.get('ip_address', '127.0.0.1')
+        user = node.get('user', 'root')
+        hostname = node.get('hostname', 'localhost')
+        
+        at_clause = ""
+        # Only add 'at' if it is a remote node (not localhost)
+        if ip != "127.0.0.1":
+            at_clause = f" at {user}@{hostname}.local"
+
         instantiation = f"""
     {node_index} = new CaptureNode(
         index={i},
-        mac_address="{node.mac_address}"
-    ) at linguafranca@{node.ip_address};"""
+        mac_address="{mac}"
+    ){at_clause};"""
         
         node_instantiations.append(instantiation)
         
     lf_code += "\n".join(node_instantiations)
-
     lf_code += "\n\n"
-    trigger_connections = []
     
+    # Create connections based on the filtered node_count
+    trigger_connections = []
     for i in range(node_count):
         node_index = f"N{i}"
         trigger_connections.append(f"    S.capture_trigger -> {node_index}.capture_trigger;")
@@ -73,49 +129,56 @@ federated reactor MotionTrackingArena (
     
     output_ports = [f"N{i}.data_out" for i in range(node_count)]
     output_list_str = ",\n    ".join(output_ports)
+    
     lf_code += f"""
     
     {output_list_str} 
     -> S.data_in;
 }}"""
+
+    # Save file
     try:
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
         with open(filename, "w") as f:
             f.write(lf_code)
-        print(f"\nSuccessfully generated {filename} for {node_count} nodes.")
-        print(f"File saved to: {os.path.abspath(filename)}")
+        print(f"\nSuccessfully generated {filename} for {node_count} worker nodes.")
     except IOError as e:
         print(f"Error saving file: {e}")
 
-class CaptureNode:
-    def __init__(
-        self, 
-        mac_address="", 
-        ip_address=""
-    ):
-        self.mac_address = mac_address
-        self.ip_address = ip_address
-
 if __name__ == "__main__":
-    with open("lf_config.yaml", "r") as file:
-        client_configs = yaml.safe_load(file)
+    # --- ARGUMENT PARSING ---
+    parser = argparse.ArgumentParser(description="Generate Lingua Franca federated reactor.")
+    parser.add_argument(
+        "--local-rti", 
+        action="store_true", 
+        help="If set, omits the 'at user@host' clause for the main reactor and scheduler."
+    )
+    args = parser.parse_args()
+    # ------------------------
 
-    mac_list = [client["mac_address"] for client in client_configs.get("clients", [])]
-    mac_to_ip, _ = get_mac_mapping(mac_list)
+    try:
+        with open("lf_config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+    except FileNotFoundError:
+        print("Error: lf_config.yaml not found.")
+        exit(1)
 
-    nodes = []
-    for mac in mac_list:
-        try:
-            ip = mac_to_ip[mac]
+    nodes = config.get("clients", [])
+    
+    if not nodes:
+        print("No clients found in yaml.")
+        exit()
 
-        except:
-            ip = "192.168.0.100"
+    mac_list = [n.get("mac_address") for n in nodes if n.get("mac_address")]
+    mac_to_ip = get_mac_mapping(mac_list)
 
+    for node in nodes:
+        mac = node.get("mac_address")
+        if mac and mac in mac_to_ip:
+            node['ip_address'] = mac_to_ip[mac]
+        else:
+            print(f"Warning: Could not resolve IP for {mac}. Defaulting to 127.0.0.1")
+            node['ip_address'] = "127.0.0.1"
 
-        nodes.append(
-            CaptureNode(
-                mac_address=mac,
-                ip_address=ip
-            )
-        )
-
-    compose_lf(nodes)
+    # Pass the CLI argument to the function
+    compose_lf_c(nodes, local_rti=args.local_rti)

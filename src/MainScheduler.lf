@@ -1,32 +1,43 @@
-target Python {
-    coordination: decentralized,
+target C {
     clock-sync: on
     # If PTP is on, clock-sync: off
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor MainScheduler (
-    node_count=2,
-    capture_rate=1 sec
+    node_count: int = 2,
+    capture_rate: time = 1 sec
 ) {
-    output capture_trigger;
-    input[node_count] data_in;
+    # Output carries the time tag
+    output capture_trigger: time
+    
+    # Input receives status integers (multiport)
+    input[node_count] data_in: int
     
     # Timer fires periodically every 1 seconds
-    timer t_periodic(0, capture_rate); 
+    timer t_periodic(0, capture_rate)
     
     # This is meant to be broadcasted to all nodes
     reaction(t_periodic) -> capture_trigger {=
-        # Retrieve and transmit the current logical time tag
-        current_lt = lf.time.logical()
-        print(f"[MainScheduler][{current_lt}]: Sending trigger to all nodes")
-        capture_trigger.set(current_lt)
+        // Retrieve and transmit the current logical time tag
+        instant_t current_lt = lf_time_logical();
+        printf("[MainScheduler][%lld]: Sending trigger to all nodes\n", current_lt);
+        lf_set(capture_trigger, current_lt);
     =}
     
     # Reaction to receive processed data and enforce the deadline
     reaction(data_in) {=
-        # Iterate through ports
-        for i, port in enumerate(data_in):
-            # This is the normal handler, invoked ONLY if Lag <= budget
-            print(f"[MainScheduler][STATUS={port.value}]: Deadline met for CaptureNode {i}")
+        // Iterate through ports
+        // data_in_width is an LF-generated variable for the size of the multiport
+        for (int i = 0; i < data_in_width; i++) {
+            if (data_in[i]->is_present) {
+                // This is the normal handler, invoked ONLY if Lag <= budget
+                printf("[MainScheduler][STATUS=%d]: Deadline met for CaptureNode %d\n", 
+                    data_in[i]->value, i);
+            }
+        }
     =}
 }

@@ -1,5 +1,5 @@
-target Python {
-    coordination: decentralized,
+target C {
+    coordination: centralized,
     clock-sync: on
     # If PTP is on, clock-sync: off
 }
@@ -8,7 +8,7 @@ import CaptureNode from "CaptureNode.lf"
 import MainScheduler from "MainScheduler.lf"
 
 federated reactor MotionTrackingArena (
-    node_count=4
+    node_count: int = 3
 ) {  
     S = new MainScheduler(
         node_count=node_count,
@@ -17,32 +17,25 @@ federated reactor MotionTrackingArena (
 
     N0 = new CaptureNode(
         index=0,
-        mac_address="E4:5F:01:00:21:CC"
-    ) at linguafranca@192.168.0.100;
+        mac_address="2C:CF:67:9C:14:56"
+    );
 
     N1 = new CaptureNode(
         index=1,
-        mac_address="E4:5F:01:90:03:BA"
-    ) at linguafranca@192.168.0.101;
+        mac_address="2C:CF:67:9C:14:56"
+    );
 
     N2 = new CaptureNode(
         index=2,
-        mac_address="E4:5F:01:90:05:B8"
-    ) at linguafranca@192.168.0.102;
-
-    N3 = new CaptureNode(
-        index=3,
-        mac_address="E4:5F:01:90:03:5C"
-    ) at linguafranca@192.168.0.103;
+        mac_address="2C:CF:67:9C:14:56"
+    );
 
     S.capture_trigger -> N0.capture_trigger;
     S.capture_trigger -> N1.capture_trigger;
     S.capture_trigger -> N2.capture_trigger;
-    S.capture_trigger -> N3.capture_trigger;
     
     N0.data_out,
     N1.data_out,
-    N2.data_out,
-    N3.data_out 
+    N2.data_out 
     -> S.data_in;
 }
