@@ -89,7 +89,7 @@ federated reactor MotionTrackingArena (
 ){rti_at_clause} {{  
     S = new MainScheduler(
         node_count=node_count,
-        capture_rate=1 sec
+        capture_rate=33 msec
     ){scheduler_at_clause};
 """
     
