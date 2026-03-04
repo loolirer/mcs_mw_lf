@@ -1,53 +1,49 @@
 target C {
-    clock-sync: on
-    # If PTP is on, clock-sync: off
+    clock-sync: on,
+    files: ["capture.cpp", "capture.h", "OpenCV.cmake"],
+    cmake-include: "OpenCV.cmake"
 }
 
 preamble {=
     #include <stdio.h>
-    
-    // Defining time constants
-    #define CRITICAL_PROCESSING_TIME MSEC(800) // Critical load
-    #define TIMER_PERIOD MSEC(1000) // Capture rate
-    #define VIOLATION_PROCESSING_TIME MSEC(1200) // Force deadline miss
+    #include "capture.h"
 =}
 
 reactor CaptureNode (
     index: int = 0,
     mac_address: char* = 0
 ) {
-    # Input carries the logical time tag of the trigger command
     input capture_trigger: time
-
-    # Output carries the processing result (1 for success, -1 for forced failure)
     output data_out: int
-    
-    # Number of cycles passed
     state cycle_count: int = 0
 
     reaction (startup) {=
         printf("[CaptureNode %d]: I'm %s!\n", self->index, self->mac_address);
+        
+        if (capture_init(self->index) != 0) {
+            lf_print_error_and_exit("Failed to initialize camera on node %d!", self->index);
+        }
+        
+        printf("[CaptureNode %d]: Warming up camera...\n", self->index);
+        lf_sleep(MSEC(2000)); // Warm-up
     =}
 
     reaction(capture_trigger) -> data_out {=
         self->cycle_count += 1;
         
-        // Violate the deadline for just one node every cycle
-        if ((self->cycle_count + self->index) % 4 == 0) {
-            printf("[CaptureNode %d][%05d]: VIOLATION DELAY (1.2 s)\n", 
-                self->index, self->cycle_count);
-            
-            // Blocking call simulates heavy computational load exceeding the budget
-            lf_sleep(VIOLATION_PROCESSING_TIME);
+        BlobFrame frame;
+   
+        int blobs_found = capture_frame(self->cycle_count, &frame);
+        
+        if (blobs_found < 0) {
+            printf("[CaptureNode %d][%05d]: CAPTURE FAILED\n", self->index, self->cycle_count);
             lf_set(data_out, -1); 
-
         } else {
-            printf("[CaptureNode %d][%05d]: NORMAL DELAY (0.8 s)\n", 
-                self->index, self->cycle_count);
-            
-            // Simulating normal computational load under the budget
-            lf_sleep(CRITICAL_PROCESSING_TIME);
-            lf_set(data_out, 1); 
+            lf_set(data_out, 1);
         }
+    =}
+
+    reaction (shutdown) {=
+        capture_cleanup();
     =}
 }
