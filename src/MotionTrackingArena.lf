@@ -17,7 +17,7 @@ federated reactor MotionTrackingArena (
 
     N0 = new CaptureNode(
         index=0,
-        mac_address="2C:CF:67:9C:14:56"
+        mac_address="2C:CF:67:9C:14:57"
     ) at linguafranca@raspmcs03.local;
 
     S.capture_trigger -> N0.capture_trigger;

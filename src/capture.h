@@ -73,22 +73,22 @@ int capture_init(int node_index);
  *
  * Called from the LF reaction that fires on `capture_trigger`.
  * The function:
- *   1. Grabs a raw grayscale frame from the camera.
- *   2. Pre-processes it (background subtraction → contrast stretch →
- *      Gaussian blur → histogram equalisation).
- *   3. Runs SimpleBlobDetector to find bright marker blobs.
- *   4. Fills `out` and returns.
+ * 1. Grabs a raw grayscale frame from the camera.
+ * 2. Pre-processes it (background subtraction → contrast stretch →
+ * Gaussian blur → histogram equalisation).
+ * 3. Runs SimpleBlobDetector to find bright marker blobs.
+ * 4. Fills `out` and returns.
  *
  * The call is intentionally blocking and synchronous — Lingua Franca's
  * deadline mechanism is responsible for deciding whether the result
  * arrives in time.
  *
  * @param shot_number  Logical shot index supplied by the LF reactor
- *                     (incremented by the reactor, not here).
+ * (incremented by the reactor, not here).
  * @param out          Caller-allocated BlobFrame that will be filled.
- * @return  Number of blobs detected (≥ 0), or -1 on capture error.
+ * @return  Pointer to the 2D array of blobs (out->blobs), or NULL on capture error.
  */
-int capture_frame(int shot_number, BlobFrame* out);
+float (*capture_frame(int shot_number, BlobFrame* out))[3];
 
 /**
  * capture_cleanup() — release camera and all OpenCV resources.

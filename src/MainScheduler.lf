@@ -1,10 +1,13 @@
 target C {
-    clock-sync: on
+    clock-sync: on,
+    files: ["capture.cpp", "capture.h", "OpenCV.cmake"],
+    cmake-include: "OpenCV.cmake"
     # If PTP is on, clock-sync: off
 }
 
 preamble {=
     #include <stdio.h>
+    #include "capture.h"
 =}
 
 reactor MainScheduler (
@@ -14,8 +17,8 @@ reactor MainScheduler (
     # Output carries the time tag
     output capture_trigger: time
     
-    # Input receives status integers (multiport)
-    input[node_count] data_in: int
+    # Input receives blob frames (multiport)
+    input[node_count] data_in: BlobFrame
     
     # Timer fires periodically every 1 seconds
     timer t_periodic(0, capture_rate)
@@ -30,13 +33,23 @@ reactor MainScheduler (
     
     # Reaction to receive processed data and enforce the deadline
     reaction(data_in) {=
-        // Iterate through ports
-        // data_in_width is an LF-generated variable for the size of the multiport
         for (int i = 0; i < data_in_width; i++) {
             if (data_in[i]->is_present) {
-                // This is the normal handler, invoked ONLY if Lag <= budget
-                printf("[MainScheduler][STATUS=%d]: Deadline met for CaptureNode %d\n", 
-                    data_in[i]->value, i);
+                // Extract the struct from the port
+                BlobFrame received_frame = data_in[i]->value;
+                
+                printf("[MainScheduler]: Received %d blobs from CaptureNode %d (Shot %d)\n", 
+                    received_frame.blob_count, received_frame.node_index, received_frame.shot_number);
+                
+                // Iterate through the 2D array of blobs and print them
+                for (int b = 0; b < received_frame.blob_count; b++) {
+                    printf("  -> Blob %d: X=%.1f, Y=%.1f, Radius=%.1f\n", 
+                        b, 
+                        received_frame.blobs[b][0], 
+                        received_frame.blobs[b][1], 
+                        received_frame.blobs[b][2]
+                    );
+                }
             }
         }
     =}

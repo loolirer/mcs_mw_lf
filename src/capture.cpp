@@ -184,14 +184,14 @@ static void save_debug_image(const cv::Mat& img, const std::vector<cv::KeyPoint>
     std::printf("   [DEBUG] Image saved to %s\n", filename.c_str());
 }
 
-int capture_frame(int shot_number, BlobFrame* out) {
-    if (!g_initialised || !out) return -1;
+float (*capture_frame(int shot_number, BlobFrame* out))[3] {
+    if (!g_initialised || !out) return nullptr;
 
     cv::Mat bgr;
     g_cap >> bgr;
     if (bgr.empty()) {
         std::fprintf(stderr, "[CaptureNode %d] WARNING: Empty frame on shot %d\n", g_node_index, shot_number);
-        return -1;
+        return nullptr;
     }
 
     const double ts = nowSeconds();
@@ -204,7 +204,7 @@ int capture_frame(int shot_number, BlobFrame* out) {
     std::vector<cv::KeyPoint> keypoints;
     g_detector->detect(proc, keypoints);
 
-    save_debug_image(proc, keypoints, shot_number);
+    //save_debug_image(proc, keypoints, shot_number);
 
     out->node_index  = g_node_index;
     out->shot_number = shot_number;
@@ -223,7 +223,9 @@ int capture_frame(int shot_number, BlobFrame* out) {
     }
 
     std::printf("[CaptureNode %d][shot %05d] %d blob(s) detected\n", g_node_index, shot_number, count);
-    return count;
+    
+    // Return the pointer to the 2D array inside the struct
+    return out->blobs;
 }
 
 // ── capture_cleanup ──────────────────────────────────────────────────────
