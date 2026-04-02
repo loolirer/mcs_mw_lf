@@ -12,11 +12,11 @@ clients:
     distortion_model: "fisheye"
     distortion_coefficients: [0.395621, 0.63370, -2.41723, 2.11079]
 
-  - alias: "Camera 3"
+  - alias: "Camera 2"
     RTI_host: False
-    user: linguafranca
-    hostname: raspmcs03
-    mac_address: "2C:CF:67:9C:14:57"
+    user: "ieeerasufcg"
+    hostname: "192.168.0.102"
+    mac_address: "E4:5F:01:90:05:B8"
     resolution: [960, 720]
     intrinsic_matrix:
       - [768.113, 000.000, 472.596]
@@ -25,6 +25,32 @@ clients:
     distortion_model: "fisheye"
     distortion_coefficients: [0.368917, 1.50111, -7.94126, 11.9171]
 
+  - alias: "Camera 3"
+    RTI_host: False
+    user: "ieeerasufcg"
+    hostname: "192.168.0.103"
+    mac_address: "E4:5F:01:90:03:5C"
+    resolution: [960, 720]
+    intrinsic_matrix:
+      - [768.113, 000.000, 472.596]
+      - [000.000, 767.935, 350.978]
+      - [000.000, 000.000, 001.000]
+    distortion_model: "fisheye"
+    distortion_coefficients: [0.368917, 1.50111, -7.94126, 11.9171]
+
+#  - alias: "Camera 4"
+#    RTI_host: False
+#    user: linguafranca
+#    hostname: "192.168.0.16"
+#    mac_address: "2C:CF:67:9C:14:57"
+#    resolution: [960, 720]
+#    intrinsic_matrix:
+#      - [768.113, 000.000, 472.596]
+#      - [000.000, 767.935, 350.978]
+#      - [000.000, 000.000, 001.000]
+#    distortion_model: "fisheye"
+#    distortion_coefficients: [0.368917, 1.50111, -7.94126, 11.9171]
+#
 #  - alias: "Camera 1"
 #    RTI_host: False
 #    user: linguafranca

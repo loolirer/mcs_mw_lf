@@ -106,7 +106,7 @@ federated reactor MotionTrackingArena (
         at_clause = ""
         # Only add 'at' if it is a remote node (not localhost)
         if ip != "127.0.0.1":
-            at_clause = f" at {user}@{hostname}.local"
+            at_clause = f" at {user}@{hostname}"
 
         instantiation = f"""
     {node_index} = new CaptureNode(

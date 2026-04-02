@@ -1,30 +1,27 @@
 #!/bin/bash
 set -euo pipefail
 
-REMOTE_USER="linguafranca"
-REMOTE_HOST="raspmcs03.local"
-REMOTE_DIR="/home/$REMOTE_USER/tmp"
+REMOTE_USER="ieeerasufcg"
+REMOTE_HOST="mocaprasp-client-3.local"
+REMOTE_DIR="/home/$REMOTE_USER/mocap_test"
+ # Better to use a dedicated name
 BUILD_DIR="$REMOTE_DIR/build"
 
+# Make sure these match exactly what you have on your local machine
 FILES=("capture.cpp" "capture.h" "CMakeLists.txt")
 
-echo "[INFO] Preparing remote directory..."
-ssh "$REMOTE_USER@$REMOTE_HOST" "mkdir -p $BUILD_DIR"
+echo "[INFO] Cleaning and preparing remote directory..."
+# We wipe the build dir to ensure a fresh CMake cache every time
+ssh "$REMOTE_USER@$REMOTE_HOST" "mkdir -p $BUILD_DIR && rm -rf $BUILD_DIR/*"
 
 echo "[INFO] Transferring files to $REMOTE_HOST..."
-for file in "${FILES[@]}"; do
-    if [[ -f "$file" ]]; then
-        scp "$file" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_DIR/"
-    else
-        echo "[WARNING] $file not found locally, skipping."
-    fi
-done
+scp "${FILES[@]}" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_DIR/"
 
-echo "[INFO] Running CMake and Building..."
+echo "[INFO] Building and Running..."
 ssh "$REMOTE_USER@$REMOTE_HOST" "bash -lc '
-    cd \"$REMOTE_DIR/build\" && \
-    cmake .. && \
+    cd \"$BUILD_DIR\" && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release && \
     make -j\$(nproc) && \
-    echo \"[INFO] Starting Capture\" && \
-    libcamerify ./capture_app 0 
+    echo \"[INFO] Starting Capture...\" && \
+    ./capture_app 0 
 '"

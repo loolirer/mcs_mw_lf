@@ -8,7 +8,7 @@ import CaptureNode from "CaptureNode.lf"
 import MainScheduler from "MainScheduler.lf"
 
 federated reactor MotionTrackingArena (
-    node_count: int = 1
+    node_count: int = 2
 ) {  
     S = new MainScheduler(
         node_count=node_count,
@@ -17,11 +17,18 @@ federated reactor MotionTrackingArena (
 
     N0 = new CaptureNode(
         index=0,
-        mac_address="2C:CF:67:9C:14:57"
-    ) at linguafranca@raspmcs03.local;
+        mac_address="E4:5F:01:90:05:B8"
+    ) at ieeerasufcg@192.168.0.102;
+
+    N1 = new CaptureNode(
+        index=1,
+        mac_address="E4:5F:01:90:03:5C"
+    ) at ieeerasufcg@192.168.0.103;
 
     S.capture_trigger -> N0.capture_trigger;
+    S.capture_trigger -> N1.capture_trigger;
     
-    N0.data_out 
+    N0.data_out,
+    N1.data_out 
     -> S.data_in;
 }
