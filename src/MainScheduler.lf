@@ -1,7 +1,6 @@
 target C {
     clock-sync: on,
-    files: ["capture.cpp", "capture.h", "OpenCV.cmake"],
-    cmake-include: "OpenCV.cmake"
+    files: ["capture.cpp", "capture.h"],
     # If PTP is on, clock-sync: off
 }
 
