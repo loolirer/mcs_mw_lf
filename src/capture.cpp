@@ -239,3 +239,30 @@ void capture_cleanup(void) {
 }
 
 }   /* extern "C" */
+
+// ── Standalone Test Main ─────────────────────────────────────────────────────
+// This only compiles if you define BUILD_EXECUTABLE (e.g., in CMake)
+/*
+int main(int argc, char** argv) {
+    int node_id = (argc > 1) ? std::stoi(argv[1]) : 0;
+    
+    std::printf("=== Starting Standalone Capture Test (Node %d) ===\n", node_id);
+
+    if (capture_init(node_id) != 0) {
+        return 1;
+    }
+
+    BlobFrame frame;
+    // Capture 5 test frames
+    for (int i = 1; i <= 5; ++i) {
+        auto result = capture_frame(i, &frame);
+        if (!result) break;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    capture_cleanup();
+    std::printf("=== Test Complete ===\n");
+    return 0;
+}
+*/
