@@ -79,9 +79,9 @@ static cv::Ptr<cv::SimpleBlobDetector> makeBlobDetector() {
 
     p.minDistBetweenBlobs = 1.0f;
 
-    // Detect dark blobs (marker after contrast-stretch appears dark)
+    // Detect white blobs
     p.filterByColor = true;
-    p.blobColor     = 0;
+    p.blobColor     = 255;
 
     p.filterByArea        = false;
     p.minArea             = 1.0f;
@@ -204,7 +204,7 @@ float (*capture_frame(int shot_number, BlobFrame* out))[3] {
     std::vector<cv::KeyPoint> keypoints;
     g_detector->detect(proc, keypoints);
 
-    //save_debug_image(proc, keypoints, shot_number);
+    save_debug_image(proc, keypoints, shot_number);
 
     out->node_index  = g_node_index;
     out->shot_number = shot_number;
