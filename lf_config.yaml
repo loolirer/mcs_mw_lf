@@ -1,6 +1,15 @@
 clients:
+  - alias: "Blinker 0"
+    reactor_type: "Blinker"
+    user: "linguafranca"
+    hostname: "192.168.0.123"
+    mac_address: "D8:3A:DD:D0:BA:E7"
+    gpio_pin: 18
+    t_on_us: 5000         # 5 000 µs = 5 ms LED on-time
+    blink_interval: 30    # blink every 30 camera shots
+
   - alias: "RTI"
-    RTI_host: True
+    reactor_type: "RTI"
     user: loolirer
     hostname: bootplug
     mac_address: "CC:47:40:FA:A0:E1"
@@ -13,7 +22,7 @@ clients:
     distortion_coefficients: [0.395621, 0.63370, -2.41723, 2.11079]
 
   - alias: "Camera 0"
-    RTI_host: False
+    reactor_type: "Capture Node"
     user: "ieeerasufcg"
     hostname: "192.168.0.100"
     mac_address: "E4:5F:01:00:21:CC"
@@ -26,7 +35,7 @@ clients:
     distortion_coefficients: [0.368917, 1.50111, -7.94126, 11.9171]
 
   - alias: "Camera 1"
-    RTI_host: False
+    reactor_type: "Capture Node"
     user: "ieeerasufcg"
     hostname: "192.168.0.101"
     mac_address: "E4:5F:01:90:03:BA"
@@ -39,7 +48,7 @@ clients:
     distortion_coefficients: [0.368917, 1.50111, -7.94126, 11.9171]
 
   - alias: "Camera 2"
-    RTI_host: False
+    reactor_type: "Capture Node"
     user: "ieeerasufcg"
     hostname: "192.168.0.102"
     mac_address: "E4:5F:01:90:05:B8"
@@ -52,7 +61,7 @@ clients:
     distortion_coefficients: [0.368917, 1.50111, -7.94126, 11.9171]
 
   - alias: "Camera 3"
-    RTI_host: False
+    reactor_type: "Capture Node"
     user: "ieeerasufcg"
     hostname: "192.168.0.103"
     mac_address: "E4:5F:01:90:03:5C"

@@ -1,0 +1,54 @@
+target C {
+    clock-sync: on,
+    files: ["gpio_blink.c", "gpio_blink.h"],
+    cmake-include: "GPIO.cmake"
+}
+
+preamble {=
+    #include <stdio.h>
+    #include "gpio_blink.h"
+=}
+
+/**
+ * Blink — federate reactor for a Raspberry Pi 5 LED node.
+ *
+ * Timing contract (enforced by the MainScheduler):
+ *   t=0         : blink_trigger arrives → GPIO goes HIGH
+ *   t=t_on/2    : cameras are triggered (capture midpoint of LED on-time)
+ *   t=t_on      : turn_off action fires → GPIO goes LOW
+ *
+ * Parameters:
+ *   t_on      – LED on-time (in any LF time unit, e.g. "5000 usec")
+ *   gpio_pin  – BCM pin number to drive
+ */
+reactor Blink (
+    t_on: time = 5000 usec,
+    gpio_pin: int = 18
+) {
+    input  blink_trigger: time
+    logical action turn_off
+
+    reaction(startup) {=
+        printf("[Blink]: GPIO pin %d, t_on=%lld us\n",
+               self->gpio_pin, (long long)(self->t_on / 1000LL));
+        if (gpio_blink_init(self->gpio_pin) != 0) {
+            lf_print_error_and_exit("Failed to initialize GPIO on Blink node!");
+        }
+    =}
+
+    reaction(blink_trigger) -> turn_off {=
+        printf("[Blink]: LED ON  (GPIO %d)\n", self->gpio_pin);
+        gpio_blink_set_high(self->gpio_pin);
+        /* schedule turn-off at exactly t_on from now in logical time */
+        lf_schedule(turn_off, self->t_on);
+    =}
+
+    reaction(turn_off) {=
+        printf("[Blink]: LED OFF (GPIO %d)\n", self->gpio_pin);
+        gpio_blink_set_low(self->gpio_pin);
+    =}
+
+    reaction(shutdown) {=
+        gpio_blink_cleanup(self->gpio_pin);
+    =}
+}

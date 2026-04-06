@@ -46,11 +46,11 @@ def get_mac_mapping(mac_list):
 
 def compose_lf_c(nodes, filename: str = "src/MotionTrackingArena.lf", local_rti: bool = False):
     # 1. Separate the RTI host from the actual Capture Nodes (workers)
-    rti_node = next((node for node in nodes if node.get('RTI_host') is True), None)
-    
-    # The list of nodes that will actually be N0, N1, etc.
-    worker_nodes = [node for node in nodes if node.get('RTI_host') is not True]
-    
+    rti_node = next((node for node in nodes if node.get('reactor_type') == 'RTI'), None)
+
+    blinker_nodes = [node for node in nodes if node.get('reactor_type') == 'Blinker']
+    worker_nodes  = [node for node in nodes if node.get('reactor_type') == 'Capture Node']
+
     node_count = len(worker_nodes)
 
     rti_at_clause = ""
@@ -74,6 +74,8 @@ def compose_lf_c(nodes, filename: str = "src/MotionTrackingArena.lf", local_rti:
             scheduler_at_clause = ""
 
     
+    blink_import = '\nimport Blink from "Blink.lf"' if blinker_nodes else ""
+
     # Begin constructing LF code
     lf_code = f"""target C {{
     coordination: centralized,
@@ -82,7 +84,7 @@ def compose_lf_c(nodes, filename: str = "src/MotionTrackingArena.lf", local_rti:
 }}
 
 import CaptureNode from "CaptureNode.lf"
-import MainScheduler from "MainScheduler.lf"
+import MainScheduler from "MainScheduler.lf"{blink_import}
 
 federated reactor MotionTrackingArena (
     node_count: int = {node_count}
@@ -117,13 +119,30 @@ federated reactor MotionTrackingArena (
         node_instantiations.append(instantiation)
         
     lf_code += "\n".join(node_instantiations)
+
+    # Blink reactor instantiations
+    for i, node in enumerate(blinker_nodes):
+        gpio_pin = node.get('gpio_pin', 18)
+        t_on_us  = node.get('t_on_us', 5000)
+        user     = node.get('user', 'root')
+        hostname = node.get('hostname', 'localhost')
+        ip       = node.get('ip_address', '127.0.0.1')
+        at_clause = f" at {user}@{hostname}" if ip != "127.0.0.1" else ""
+        lf_code += f"""
+    \nB{i} = new Blink(
+        gpio_pin={gpio_pin},
+        t_on={t_on_us} usec
+    ){at_clause};"""
+
     lf_code += "\n\n"
-    
+
     # Create connections based on the filtered node_count
     trigger_connections = []
     for i in range(node_count):
         node_index = f"N{i}"
         trigger_connections.append(f"    S.capture_trigger -> {node_index}.capture_trigger;")
+    for i in range(len(blinker_nodes)):
+        trigger_connections.append(f"    S.capture_trigger -> B{i}.blink_trigger;")
         
     lf_code += "\n".join(trigger_connections)
     
