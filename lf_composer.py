@@ -138,11 +138,13 @@ federated reactor MotionTrackingArena (
 
     # Create connections based on the filtered node_count
     trigger_connections = []
+    offset = 0
+    for i, node in enumerate(blinker_nodes):
+        trigger_connections.append(f"    S.capture_trigger -> B{i}.blink_trigger;")
+        offset = node.get('t_on_us', 5000)//2
     for i in range(node_count):
         node_index = f"N{i}"
-        trigger_connections.append(f"    S.capture_trigger -> {node_index}.capture_trigger;")
-    for i in range(len(blinker_nodes)):
-        trigger_connections.append(f"    S.capture_trigger -> B{i}.blink_trigger;")
+        trigger_connections.append(f"    S.capture_trigger -> {node_index}.capture_trigger after {offset} usec;")
         
     lf_code += "\n".join(trigger_connections)
     
