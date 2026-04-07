@@ -34,21 +34,22 @@ reactor Blink (
         if (gpio_blink_init(self->gpio_pin) != 0) {
             lf_print_error_and_exit("Failed to initialize GPIO on Blink node!");
         }
+        gpio_blink_set_high(self->gpio_pin);
     =}
 
     reaction(blink_trigger) -> turn_off {=
         printf("[Blink]: LED ON  (GPIO %d)\n", self->gpio_pin);
-        gpio_blink_set_high(self->gpio_pin);
-        /* schedule turn-off at exactly t_on from now in logical time */
+        gpio_blink_set_low(self->gpio_pin);
         lf_schedule(turn_off, self->t_on);
     =}
 
     reaction(turn_off) {=
         printf("[Blink]: LED OFF (GPIO %d)\n", self->gpio_pin);
-        gpio_blink_set_low(self->gpio_pin);
+        gpio_blink_set_high(self->gpio_pin);
     =}
 
     reaction(shutdown) {=
+        gpio_blink_set_high(self->gpio_pin);
         gpio_blink_cleanup(self->gpio_pin);
     =}
 }
