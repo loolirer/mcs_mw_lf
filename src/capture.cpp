@@ -204,7 +204,8 @@ float (*capture_frame(int shot_number, BlobFrame* out))[3] {
     std::vector<cv::KeyPoint> keypoints;
     g_detector->detect(proc, keypoints);
 
-    save_debug_image(proc, keypoints, shot_number);
+    // Uncomment to save shots
+    //save_debug_image(proc, keypoints, shot_number);
 
     out->node_index  = g_node_index;
     out->shot_number = shot_number;
@@ -222,7 +223,8 @@ float (*capture_frame(int shot_number, BlobFrame* out))[3] {
         out->blobs[i][0] = 0.0f; out->blobs[i][1] = 0.0f; out->blobs[i][2] = 0.0f;
     }
 
-    std::printf("[CaptureNode %d][shot %05d] %d blob(s) detected\n", g_node_index, shot_number, count);
+    // Uncomment to see log
+    //std::printf("[CaptureNode %d][shot %05d] %d blob(s) detected\n", g_node_index, shot_number, count);
     
     // Return the pointer to the 2D array inside the struct
     return out->blobs;

@@ -5,8 +5,7 @@ clients:
     hostname: "192.168.0.123"
     mac_address: "D8:3A:DD:D0:BA:E7"
     gpio_pin: 18
-    t_on_us: 5000         # 5 000 µs = 5 ms LED on-time
-    blink_interval: 30    # blink every 30 camera shots
+    t_on_us: 1000
 
   - alias: "RTI"
     reactor_type: "RTI"

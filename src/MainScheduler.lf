@@ -26,7 +26,10 @@ reactor MainScheduler (
     reaction(t_periodic) -> capture_trigger {=
         // Retrieve and transmit the current logical time tag
         instant_t current_lt = lf_time_logical();
+        instant_t current_pt = lf_time_physical();
         printf("[MainScheduler][%lld]: Sending trigger to all nodes\n", current_lt);
+        printf("- Logical Time: %lld\n", current_lt);
+        printf("- Physical Time: %lld\n", current_pt);
         lf_set(capture_trigger, current_lt);
     =}
     
@@ -42,7 +45,7 @@ reactor MainScheduler (
                 
                 // Iterate through the 2D array of blobs and print them
                 for (int b = 0; b < received_frame.blob_count; b++) {
-                    printf("  -> Blob %d: X=%.1f, Y=%.1f, Radius=%.1f\n", 
+                    printf("- Blob %d: X=%.1f, Y=%.1f, Radius=%.1f\n", 
                         b, 
                         received_frame.blobs[b][0], 
                         received_frame.blobs[b][1], 
