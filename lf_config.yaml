@@ -5,20 +5,15 @@ clients:
     hostname: "192.168.0.123"
     mac_address: "D8:3A:DD:D0:BA:E7"
     gpio_pin: 18
-    t_on_us: 1000
+    t_on_us: 4500
 
   - alias: "RTI"
     reactor_type: "RTI"
     user: loolirer
     hostname: bootplug
     mac_address: "CC:47:40:FA:A0:E1"
-    resolution: [960, 720]
-    intrinsic_matrix:
-      - [720.313, 000.000, 481.014]
-      - [000.000, 719.521, 360.991]
-      - [000.000, 000.000, 001.000]
-    distortion_model: "fisheye"
-    distortion_coefficients: [0.395621, 0.63370, -2.41723, 2.11079]
+    capture_rate: 30
+    max_cycles: 3000
 
   - alias: "Camera 0"
     reactor_type: "Capture Node"

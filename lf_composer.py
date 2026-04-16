@@ -64,6 +64,8 @@ def compose_lf_c(nodes, filename: str = "src/MotionTrackingArena.lf", local_rti:
         if rti_node:
             rti_host = rti_node.get('hostname', 'localhost')
             rti_user = rti_node.get('user', 'root')
+            rti_max_cycles = rti_node.get('max_cycles', 3000)
+            rti_capture_rate = rti_node.get('capture_rate', 30)
             print(f"RTI Host found: {rti_host} (User: {rti_user})")
             
             rti_at_clause = f" at {rti_user}@{rti_host}.local"
@@ -91,7 +93,8 @@ federated reactor MotionTrackingArena (
 ){rti_at_clause} {{  
     S = new MainScheduler(
         node_count=node_count,
-        capture_rate=33 msec
+        capture_period={1e6//rti_capture_rate} usec,
+        max_cycles={rti_max_cycles}
     ){scheduler_at_clause};
 """
     

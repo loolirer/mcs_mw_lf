@@ -11,7 +11,7 @@ preamble {=
 
 reactor MainScheduler (
     node_count: int = 2,
-    capture_rate: time = 1 sec,
+    capture_period: time = 1 sec,
     max_cycles: int = 3000
 ) {
     # Output carries the time tag
@@ -21,7 +21,7 @@ reactor MainScheduler (
     input[node_count] data_in: BlobFrame
     
     # Timer fires periodically every 1 seconds
-    timer t_periodic(0, capture_rate)
+    timer t_periodic(0, capture_period)
 
     # Cycle count for tracking the number of captures
     state cycle_count: int = 0
