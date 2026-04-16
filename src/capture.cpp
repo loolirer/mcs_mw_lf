@@ -139,11 +139,11 @@ extern "C" {
 int capture_init(int node_index) {
     g_node_index = node_index;
 
-// Force the ISP to output RGBx, then convert to BGR for OpenCV
+    // Force the ISP to output RGBx, then convert to BGR for OpenCV
     std::string pipeline = "libcamerasrc ! video/x-raw, width=" + std::to_string(CAM_WIDTH) + 
                            ", height=" + std::to_string(CAM_HEIGHT) + 
                            ", framerate=" + std::to_string(CAM_FPS) + "/1, format=RGBx " +
-                           "! videoconvert ! video/x-raw, format=BGR ! appsink drop=true sync=false";
+                           "! videoconvert ! video/x-raw, format=BGR ! appsink drop=true max-buffers=1 sync=false";
 
     // Open using the GStreamer backend
     g_cap.open(pipeline, cv::CAP_GSTREAMER);
