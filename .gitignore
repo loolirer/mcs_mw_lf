@@ -175,3 +175,5 @@ core/model/
 
 # Exclude virtual environment
 .venv
+
+outputs
