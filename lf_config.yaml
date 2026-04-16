@@ -5,7 +5,7 @@ clients:
     hostname: "192.168.0.123"
     mac_address: "D8:3A:DD:D0:BA:E7"
     gpio_pin: 18
-    t_on_us: 4500
+    t_on_us: 10000
 
   - alias: "RTI"
     reactor_type: "RTI"

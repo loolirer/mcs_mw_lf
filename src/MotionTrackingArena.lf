@@ -13,7 +13,8 @@ federated reactor MotionTrackingArena (
 ) {  
     S = new MainScheduler(
         node_count=node_count,
-        capture_rate=33 msec
+        capture_period=33333 usec,
+        max_cycles=3000
     );
 
     N0 = new CaptureNode(
@@ -38,14 +39,14 @@ federated reactor MotionTrackingArena (
     
 B0 = new Blink(
         gpio_pin=18,
-        t_on=1000 usec
+        t_on=10000 usec
     ) at linguafranca@192.168.0.123;
 
     S.capture_trigger -> B0.blink_trigger;
-    S.capture_trigger -> N0.capture_trigger after 500 usec;
-    S.capture_trigger -> N1.capture_trigger after 500 usec;
-    S.capture_trigger -> N2.capture_trigger after 500 usec;
-    S.capture_trigger -> N3.capture_trigger after 500 usec;
+    S.capture_trigger -> N0.capture_trigger after 5000 usec;
+    S.capture_trigger -> N1.capture_trigger after 5000 usec;
+    S.capture_trigger -> N2.capture_trigger after 5000 usec;
+    S.capture_trigger -> N3.capture_trigger after 5000 usec;
     
     N0.data_out,
     N1.data_out,
