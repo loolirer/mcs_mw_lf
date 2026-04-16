@@ -63,27 +63,32 @@ def plot_sweep_graph(sweep_stats):
     hit_color = '#2ecc71'
 
     sorted_t = sorted(sweep_stats.keys())
+    plot_x = [t / 2 for t in sorted_t]
+    
     hit_rates = [sweep_stats[t] for t in sorted_t]
     miss_rates = [100 - hr for hr in hit_rates]
     
     fig, ax = plt.subplots(figsize=(12, 7))
-    bar_width = (sorted_t[1] - sorted_t[0]) * 0.8 if len(sorted_t) > 1 else 400
-    bars_hits = ax.bar(sorted_t, hit_rates, color=hit_color, edgecolor='white', 
+    
+    bar_width = (plot_x[1] - plot_x[0]) * 0.8 if len(plot_x) > 1 else 200
+    
+    bars_hits = ax.bar(plot_x, hit_rates, color=hit_color, edgecolor='white', 
                        width=bar_width, label='Global Hit')
-    bars_misses = ax.bar(sorted_t, miss_rates, bottom=hit_rates, color=miss_color, 
+    bars_misses = ax.bar(plot_x, miss_rates, bottom=hit_rates, color=miss_color, 
                          edgecolor='white', width=bar_width, label='Global Miss')
 
-    ax.set_xlabel('LED On-Time ($t_{on}$) [$\mu s$]', fontsize=12)
+    ax.set_xlabel('Maximum Jitter Tolerance ($t_{on}/2$) [$\mu s$]', fontsize=12)
     ax.set_ylabel('Hit-Miss Rates (%)', fontsize=12)
     ax.set_title('Synchrony Quality Time Sweep', fontsize=14, pad=20)
-    ax.set_xticks(sorted_t)
-    ax.set_xticklabels(sorted_t, rotation=45)
+    
+    ax.set_xticks(plot_x)
+    ax.set_xticklabels([f"{val:.0f}" for val in plot_x], rotation=45)
     ax.set_ylim(0, 105)
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2)
     
     for i, hr in enumerate(hit_rates):
-        ax.text(sorted_t[i], hr/2 if hr > 10 else hr + 5, f"{hr:.1f}%", 
-                ha='center', va='center', color='white' if hr > 10 else 'white', 
+        ax.text(plot_x[i], hr/2 if hr > 10 else hr + 5, f"{hr:.1f}%", 
+                ha='center', va='center', color='white', 
                 fontweight='bold', fontsize=9)
 
     plt.tight_layout()
