@@ -11,7 +11,8 @@ preamble {=
 
 reactor MainScheduler (
     node_count: int = 2,
-    capture_rate: time = 1 sec
+    capture_rate: time = 1 sec,
+    max_cycles: int = 3000
 ) {
     # Output carries the time tag
     output capture_trigger: time
@@ -21,6 +22,9 @@ reactor MainScheduler (
     
     # Timer fires periodically every 1 seconds
     timer t_periodic(0, capture_rate)
+
+    # Cycle count for tracking the number of captures
+    state cycle_count: int = 0
     
     # This is meant to be broadcasted to all nodes
     reaction(t_periodic) -> capture_trigger {=
@@ -31,6 +35,13 @@ reactor MainScheduler (
         printf("- Logical Time: %lld\n", current_lt);
         printf("- Physical Time: %lld\n", current_pt);
         lf_set(capture_trigger, current_lt);
+
+        self->cycle_count += 1;
+
+        if (self->cycle_count >= self->max_cycles) {
+            printf("[MainScheduler] Reached max cycles (%d). Requesting shutdown...\n", self->max_cycles);
+            lf_request_stop();
+        }
     =}
     
     # Reaction to receive processed data and enforce the deadline
