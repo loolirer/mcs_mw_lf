@@ -97,7 +97,7 @@ def plot_metrics(phys_data, dev_data, nodes, t_on_us):
     plt.tight_layout()
     plt.show()
 
-filename = 'outputs/output_3500.txt'
+filename = 'outputs/output_10000.txt'
 t_on_val = int(Path(filename).stem.split('_')[-1])
 phys_data, dev_data, n_list = parse_jitter_log(filename)
 plot_metrics(phys_data, dev_data, n_list, t_on_val)
