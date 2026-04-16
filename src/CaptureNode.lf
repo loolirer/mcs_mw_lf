@@ -23,9 +23,6 @@ reactor CaptureNode (
         if (capture_init(self->index) != 0) {
             lf_print_error_and_exit("Failed to initialize camera on node %d!", self->index);
         }
-        
-        printf("[CaptureNode %d]: Warming up camera...\n", self->index);
-        lf_sleep(MSEC(2000)); // Warm-up
     =}
 
     reaction(capture_trigger) -> data_out {=
@@ -33,7 +30,6 @@ reactor CaptureNode (
         
         BlobFrame frame;
         
-        // Call the updated C function. It returns a pointer to the 2D array on success, NULL on failure.
         float (*blobs_found)[3] = capture_frame(self->cycle_count, &frame);
         instant_t current_lt = lf_time_logical();
         instant_t current_pt = lf_time_physical();
@@ -43,9 +39,7 @@ reactor CaptureNode (
         
         if (blobs_found == NULL) {
             printf("[CaptureNode %d][%05d]: Capture failed, image empty\n", self->index, self->cycle_count);
-            // We do not call lf_set here, so the port remains "absent" for this cycle
         } else {
-            // Successfully captured! Send the entire populated struct over the network
             lf_set(data_out, frame);
         }
     =}

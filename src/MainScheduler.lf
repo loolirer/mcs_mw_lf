@@ -14,21 +14,12 @@ reactor MainScheduler (
     capture_period: time = 1 sec,
     max_cycles: int = 3000
 ) {
-    # Output carries the time tag
     output capture_trigger: time
-    
-    # Input receives blob frames (multiport)
     input[node_count] data_in: BlobFrame
-    
-    # Timer fires periodically every 1 seconds
-    timer t_periodic(0, capture_period)
-
-    # Cycle count for tracking the number of captures
+    timer t_periodic(2 sec, capture_period) # 2 second offset
     state cycle_count: int = 0
     
-    # This is meant to be broadcasted to all nodes
     reaction(t_periodic) -> capture_trigger {=
-        // Retrieve and transmit the current logical time tag
         instant_t current_lt = lf_time_logical();
         instant_t current_pt = lf_time_physical();
         printf("[MainScheduler][%lld]: Sending trigger to all nodes\n", current_lt);
@@ -44,17 +35,14 @@ reactor MainScheduler (
         }
     =}
     
-    # Reaction to receive processed data and enforce the deadline
     reaction(data_in) {=
         for (int i = 0; i < data_in_width; i++) {
             if (data_in[i]->is_present) {
-                // Extract the struct from the port
                 BlobFrame received_frame = data_in[i]->value;
                 
                 printf("[MainScheduler]: Received %d blobs from CaptureNode %d (Shot %d)\n", 
                     received_frame.blob_count, received_frame.node_index, received_frame.shot_number);
                 
-                // Iterate through the 2D array of blobs and print them
                 for (int b = 0; b < received_frame.blob_count; b++) {
                     printf("- Blob %d: X=%.1f, Y=%.1f, Radius=%.1f\n", 
                         b, 
