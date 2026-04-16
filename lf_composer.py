@@ -45,7 +45,6 @@ def get_mac_mapping(mac_list):
     return mac_to_ip
 
 def compose_lf_c(nodes, filename: str = "src/MotionTrackingArena.lf", local_rti: bool = False):
-    # 1. Separate the RTI host from the actual Capture Nodes (workers)
     rti_node = next((node for node in nodes if node.get('reactor_type') == 'RTI'), None)
 
     blinker_nodes = [node for node in nodes if node.get('reactor_type') == 'Blinker']
@@ -56,25 +55,23 @@ def compose_lf_c(nodes, filename: str = "src/MotionTrackingArena.lf", local_rti:
     rti_at_clause = ""
     scheduler_at_clause = ""
 
-    if local_rti:
-        print("CLI Flag detected: RTI will be local (omitting 'at' clause for Reactor and Scheduler).")
-        rti_at_clause = "" 
-        scheduler_at_clause = ""
-    else:
-        if rti_node:
-            rti_host = rti_node.get('hostname', 'localhost')
-            rti_user = rti_node.get('user', 'root')
-            rti_max_cycles = rti_node.get('max_cycles', 3000)
-            rti_capture_rate = rti_node.get('capture_rate', 30)
-            print(f"RTI Host found: {rti_host} (User: {rti_user})")
-            
-            rti_at_clause = f" at {rti_user}@{rti_host}.local"
-            scheduler_at_clause = f" at {rti_user}@{rti_host}.local"
-        else:
-            print("No RTI Host found in config. Defaulting to local generation.")
-            rti_at_clause = ""
+    if rti_node:
+        rti_host = rti_node.get('hostname', 'localhost')
+        rti_user = rti_node.get('user', 'root')
+        rti_max_cycles = rti_node.get('max_cycles', 3000)
+        rti_capture_rate = rti_node.get('capture_rate', 30)
+        print(f"RTI Host found: {rti_host} (User: {rti_user})")
+        
+        rti_at_clause = f" at {rti_user}@{rti_host}.local"
+        scheduler_at_clause = f" at {rti_user}@{rti_host}.local"
+    
+        if local_rti:
+            print("CLI Flag detected: RTI will be local (omitting 'at' clause for Reactor and Scheduler).")
+            rti_at_clause = "" 
             scheduler_at_clause = ""
 
+    else:
+        raise ValueError("No RTI Host found in config.")
     
     blink_import = '\nimport Blink from "Blink.lf"' if blinker_nodes else ""
 
