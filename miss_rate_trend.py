@@ -3,6 +3,7 @@ import re
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
+from matplotlib.colors import ListedColormap
 from pathlib import Path
 
 def parse_mocap_log(file_path):
@@ -61,10 +62,16 @@ def plot_system_synchrony(shot_data, nodes, t_on_us=5000, window_size=30):
 
     fig, ax = plt.subplots(figsize=(14, 5))
 
-    for idx, shot in enumerate(sorted_shots):
-        color = hit_color if global_miss_binary[idx] == 0 else miss_color
-        ax.broken_barh([(shot, 1)], (0, 1), facecolors=color, alpha=0.9)
-
+    start_shot = sorted_shots[0]
+    end_shot = sorted_shots[-1]
+    extent = [start_shot, end_shot, 0, 1]
+    data_array = global_miss_binary.reshape(1, -1)
+    cmap = ListedColormap([hit_color, miss_color])
+    ax.imshow(data_array, aspect='auto', cmap=cmap, extent=extent, interpolation='nearest')
+    padding = (end_shot - start_shot) * 0.02 
+    ax.set_xlim(start_shot - padding, end_shot + padding)
+    ax.set_ylim(-0.1, 1.1)
+    
     ax.plot(sorted_shots, miss_rate_ma, color=miss_rate_color, linewidth=1.0, label='System Failure Trend')
 
     total_shots = len(global_miss_binary)
@@ -85,8 +92,8 @@ def plot_system_synchrony(shot_data, nodes, t_on_us=5000, window_size=30):
     plt.tight_layout()
     plt.show()
 
-filename = 'outputs/output_4000.txt'
+filename = 'output2_10000.txt'
 t_on_us = int(Path(filename).stem.split('_')[-1])
 
 data, nodes_list = parse_mocap_log(filename)
-plot_system_synchrony(data, nodes_list, t_on_us=t_on_us, window_size=30)
+plot_system_synchrony(data, nodes_list, t_on_us=t_on_us, window_size=120)
